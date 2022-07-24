@@ -1,17 +1,20 @@
 
 const AccelerationThreshold = 1;
 
-var sound = new Pizzicato.Sound({
-  source: 'wave',
-  options: { type: 'square', frequency: 440, attack: 0 }
-});
+var sound;
 
-var stereoPanner = new Pizzicato.Effects.StereoPanner({
-  pan: 0.5
-});
-
-sound.addEffect(stereoPanner);
-
+function initialiseSound() {
+  sound = new Pizzicato.Sound({
+    source: 'wave',
+    options: { type: 'square', frequency: 440, attack: 0 }
+  });
+  
+  var stereoPanner = new Pizzicato.Effects.StereoPanner({
+    pan: 0.5
+  });
+  
+  sound.addEffect(stereoPanner);
+}
 
 function requestPermission() {
 
@@ -30,6 +33,8 @@ function requestPermission() {
     // Handle regular non iOS 13+ devices.
     window.addEventListener('devicemotion', handleMotion);
   }
+
+  initialiseSound(); 
 }
 
 function startAudio() {
