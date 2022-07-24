@@ -1,9 +1,11 @@
 
 const AccelerationThreshold = 1;
 
-var sound;
+let sound;
 
 function initialiseSound() {
+
+
   sound = new Pizzicato.Sound({
     source: 'wave',
     options: { type: 'square', frequency: 440, attack: 0 }
@@ -18,6 +20,8 @@ function initialiseSound() {
 
 function requestPermission() {
 
+  initialiseSound(); 
+  
   if (typeof DeviceMotionEvent.requestPermission === 'function') {
     // Handle iOS 13+ devices.
     DeviceMotionEvent.requestPermission()
@@ -34,7 +38,7 @@ function requestPermission() {
     window.addEventListener('devicemotion', handleMotion);
   }
 
-  initialiseSound(); 
+
 }
 
 function startAudio() {
