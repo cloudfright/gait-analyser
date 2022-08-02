@@ -61,13 +61,16 @@ function stopAudio() {
 
 function handleMotion(event) {
 
+  sound.frequency(440 + event.accelerationIncludingGravity.x - event.acceleration.x);
+  sound.play();
+/*
   if (Math.abs(event.acceleration.x) >= AccelerationThreshold) {
     sound.play();
   }
   else {
     sound.stop();
   }
-
+*/
 
   /*
   event.rotationRate.alpha
