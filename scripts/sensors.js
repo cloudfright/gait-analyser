@@ -61,7 +61,7 @@ function stopAudio() {
 
 function handleMotion(event) {
 
-  sound.frequency = 440 + event.accelerationIncludingGravity.x - event.acceleration.x;
+  sound.frequency = 440 + event.accelerationIncludingGravity.y - event.acceleration.y;
   sound.play();
 /*
   if (Math.abs(event.acceleration.x) >= AccelerationThreshold) {
