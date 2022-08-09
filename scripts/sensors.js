@@ -151,8 +151,8 @@ function updateState(event) {
           accelerationState = AccelerationStates.Decelerate;
           console.log(newValue, 'ACCELERATE -> DECELERATE');
         }
-        if (abs(newValue) > aMax) {
-          aMax = abs(newValue);
+        if (Math.abs(newValue) > aMax) {
+          aMax = Math.abs(newValue);
         }
       }
       else {
