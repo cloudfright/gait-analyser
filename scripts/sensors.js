@@ -1,7 +1,72 @@
 
-const AccelerationThreshold = 1;
 
-let sound;
+const noteFrequencies = [
+
+  440.00, // A4
+  466.16, // A#/Bb 4
+  493.88, // B4
+  523.25, // C4
+  554.37, // C#/Db 4
+  587.33, // D4
+  622.25, // D#/Eb 4
+  659.25, // E4
+  698.46, // F4
+  739.99, // F#/Gb 4
+  783.99, // G4
+  830.61, // G#/Ab 4
+  888.00  // A5
+
+];
+
+const AccelerationStates = {
+  Stationary: 'Stationary',
+  Accelerate: 'Accelerate',
+  Decelerate: 'Decelerate'
+};
+
+const AccelerationThreshold = 2;
+const DecelerationThreshold = AccelerationThreshold / 3;
+const AccelerationMax = AccelerationThreshold * 2;
+const AccelerationThresholdCount = 3;
+
+const Direction = {
+  Undefined: 'Undefined',
+  Forwards: 'Forwards',
+  Backwards: 'Backwards',
+};
+
+let accelerationState = AccelerationStates.Stationary;
+let currentDirection = Direction.Undefined;
+const speechSynth = window.speechSynthesis;;
+
+// ---------------
+
+class ExponentialMovingAverage {
+  constructor(alpha, mean) {
+    this.alpha = alpha;
+    this.mean = !mean ? 0 : mean;
+  }
+
+  get beta() {
+    return 1 - this.alpha;
+  }
+
+  get filtered() {
+    return this.mean;
+  }
+
+  update(newValue) {
+    const redistributedMean = this.beta * this.mean;
+    const meanIncrement = this.alpha * newValue;
+    const newMean = redistributedMean + meanIncrement;
+    this.mean = newMean;
+  }
+}
+
+let smoothAx = new ExponentialMovingAverage(0.7);
+let smoothAy = new ExponentialMovingAverage(0.7);
+let smoothAz = new ExponentialMovingAverage(0.7);
+let aMax = 0;
 
 function initSound() {
 
@@ -46,65 +111,84 @@ function requestMotionPermission() {
     window.addEventListener('devicemotion', handleMotion);
   }
 
+  let utterance = new SpeechSynthesisUtterance("Permission granted");
+
+  speechSynth.speak(utterance);
 
 }
 
-function startAudio() {
-  sound.play();
-
-}
-
-function stopAudio() {
-  sound.stop();
-}
 
 
 function handleMotion(event) {
 
-  sound.frequency = 440 + event.accelerationIncludingGravity.y - event.acceleration.y;
-  sound.play();
-/*
-  if (Math.abs(event.acceleration.x) >= AccelerationThreshold) {
-    sound.play();
-  }
-  else {
-    sound.stop();
-  }
-*/
-
-  /*
-  event.rotationRate.alpha
-  event.rotationRate.beta
-  event.rotationRate.gamma
-
-
-  event.acceleration.y
-  event.acceleration.z
-
-  event.accelerationIncludingGravity.x - event.acceleration.x
-  event.accelerationIncludingGravity.y - event.acceleration.y
-  event.accelerationIncludingGravity.z - event.acceleration.z
-https://stackoverflow.com/questions/57942230/ios-safari-web-audio-api-restriction-problem
-https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/Using_HTML5_Audio_Video/PlayingandSynthesizingSounds/PlayingandSynthesizingSounds.html
-https://github.com/CreateJS/SoundJS
-
-https://paulbakaus.com/tutorials/html5/web-audio-on-ios/
-
-https://stackoverflow.com/questions/12517000/no-sound-on-ios-6-web-audio-api
-
-https://gist.github.com/kus/3f01d60569eeadefe3a1
-
-just resume like this:
-
-document.addEventListener('touchend', ()=>window.audioContext.resume());
-
-https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Best_practices
-
-https://developer.chrome.com/blog/autoplay/#webaudio
-
----> https://github.com/alemangui/pizzicato/issues/115
-
-
-*/
-
+  smoothAx.update(event.acceleration.x);
+  smoothAy.update(event.acceleration.y);
+  smoothAz.update(event.acceleration.z);
+  
+  updateState(event);
 }
+
+function updateState(event) {
+
+  let newValue = smoothAx.filtered;
+
+  switch (accelerationState) {
+
+    case AccelerationStates.Stationary:
+
+      if (Math.abs(newValue) >= AccelerationThreshold) {
+        currentDirection = newValue < 0 ? Direction.Forwards : Direction.Backwards;
+        accelerationState = AccelerationStates.Accelerate;
+        console.log(newValue, 'STATIONARY -> ACCELERATE', currentDirection);
+      }
+      break;
+
+    case AccelerationStates.Accelerate:
+
+      if (currentDirection == Direction.Forwards) {
+
+        if (newValue >= AccelerationThreshold) { // We're going forwards, so a positive rise above the threshold indicates deceleration 
+          accelerationState = AccelerationStates.Decelerate;
+          console.log(newValue, 'ACCELERATE -> DECELERATE');
+        }
+        if (abs(newValue) > aMax) {
+          aMax = abs(newValue);
+        }
+      }
+      else {
+
+        if (newValue <= -AccelerationThreshold) { // We're going backwards, so a negative rise above the threshold indicates deceleration 
+          accelerationState = AccelerationStates.Decelerate;
+          console.log(newValue, 'ACCELERATE -> DECELERATE');
+        }
+      }
+      break;
+
+    case AccelerationStates.Decelerate:
+
+      if (currentDirection == Direction.Forwards) {
+
+        if (newValue <= DecelerationThreshold) { // We're going forwards, a value below the deceleration threshold means we're stationary 
+          accelerationState = AccelerationStates.Stationary;
+          console.log(newValue, 'DECELERATE -> STATIONARY!');
+
+          let utterance = new SpeechSynthesisUtterance(Math.round(aMax));
+          speechSynth.speak(utterance);
+          aMax = 0;
+        }
+      }
+      else {
+
+        if (newValue >= -DecelerationThreshold) { // We're going backwards, so a negative value below the deceleration means we're stationary 
+          accelerationState = AccelerationStates.Stationary;
+          console.log(newValue, 'DECELERATE -> STATIONARY');
+
+          let utterance = new SpeechSynthesisUtterance(Math.round(aMax));
+          speechSynth.speak(utterance);
+          aMax = 0;
+        }
+      }
+      break;
+
+  }
+}  
