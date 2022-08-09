@@ -1,5 +1,3 @@
-
-
 const noteFrequencies = [
 
   440.00, // A4
@@ -14,7 +12,7 @@ const noteFrequencies = [
   739.99, // F#/Gb 4
   783.99, // G4
   830.61, // G#/Ab 4
-  888.00  // A5
+  888.00 // A5
 
 ];
 
@@ -37,7 +35,8 @@ const Direction = {
 
 let accelerationState = AccelerationStates.Stationary;
 let currentDirection = Direction.Undefined;
-const speechSynth = window.speechSynthesis;;
+const speechSynth = window.speechSynthesis;
+;
 
 // ---------------
 
@@ -73,23 +72,29 @@ function initSound() {
   // we don't need the mic, but it seems to be the only way to get the audio context unmuted when asking for permission
   var mic = new Pizzicato.Sound({
     source: 'input',
-    options: { volume: 0 }
+    options: {
+      volume: 0
+    }
   });
 
   sound = new Pizzicato.Sound({
     source: 'wave',
-    options: { type: 'square', frequency: 440, attack: 0 }
+    options: {
+      type: 'square',
+      frequency: 440,
+      attack: 0
+    }
   });
-  
+
   var group = new Pizzicato.Group();
 
   group.addSound(mic);
   group.addSound(sound);
-  
+
   var stereoPanner = new Pizzicato.Effects.StereoPanner({
     pan: 0.5
   });
-  
+
   sound.addEffect(stereoPanner);
 }
 
@@ -112,7 +117,6 @@ function requestMotionPermission() {
   }
 
   let utterance = new SpeechSynthesisUtterance("Permission granted");
-
   speechSynth.speak(utterance);
 
 }
@@ -124,7 +128,7 @@ function handleMotion(event) {
   smoothAx.update(event.acceleration.x);
   smoothAy.update(event.acceleration.y);
   smoothAz.update(event.acceleration.z);
-  
+
   updateState(event);
 }
 
@@ -147,7 +151,8 @@ function updateState(event) {
 
       if (currentDirection == Direction.Forwards) {
 
-        if (newValue >= AccelerationThreshold) { // We're going forwards, so a positive rise above the threshold indicates deceleration 
+        if (newValue >= AccelerationThreshold) {
+          // We're going forwards, so a positive rise above the threshold indicates deceleration 
           accelerationState = AccelerationStates.Decelerate;
           console.log(newValue, 'ACCELERATE -> DECELERATE');
         }
@@ -157,7 +162,8 @@ function updateState(event) {
       }
       else {
 
-        if (newValue <= -AccelerationThreshold) { // We're going backwards, so a negative rise above the threshold indicates deceleration 
+        if (newValue <= -AccelerationThreshold) {
+          // We're going backwards, so a negative rise above the threshold indicates deceleration 
           accelerationState = AccelerationStates.Decelerate;
           console.log(newValue, 'ACCELERATE -> DECELERATE');
         }
@@ -168,27 +174,40 @@ function updateState(event) {
 
       if (currentDirection == Direction.Forwards) {
 
-        if (newValue <= DecelerationThreshold) { // We're going forwards, a value below the deceleration threshold means we're stationary 
+        if (newValue <= DecelerationThreshold) {
+          // We're going forwards, a value below the deceleration threshold means we're stationary 
           accelerationState = AccelerationStates.Stationary;
           console.log(newValue, 'DECELERATE -> STATIONARY!');
 
-          let utterance = new SpeechSynthesisUtterance(Math.round(aMax));
-          speechSynth.speak(utterance);
+          speakScore();
           aMax = 0;
+
         }
       }
       else {
 
-        if (newValue >= -DecelerationThreshold) { // We're going backwards, so a negative value below the deceleration means we're stationary 
+        if (newValue >= -DecelerationThreshold) {
+          // We're going backwards, so a negative value below the deceleration means we're stationary 
           accelerationState = AccelerationStates.Stationary;
           console.log(newValue, 'DECELERATE -> STATIONARY');
 
-          let utterance = new SpeechSynthesisUtterance(Math.round(aMax));
-          speechSynth.speak(utterance);
+          speakScore();
           aMax = 0;
         }
       }
       break;
 
   }
-}  
+}
+
+function speakScore() {
+
+  let score = Math.round(aMax);
+
+  if (score > 0) {
+    let utterance = new SpeechSynthesisUtterance(score);
+    utterance.rate = 1.3;
+    speechSynth.speak(utterance);
+  }
+}
+
